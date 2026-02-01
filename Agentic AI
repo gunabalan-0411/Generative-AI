@@ -1,0 +1,691 @@
+# Generative AI Interview Notes — AI Agents & Agentic Workflows (Hands-on + Structured Outputs + CLI Coding Agent)
+
+> Goal: Interview-ready + practical notes on **building AI agents** and **agentic workflows**.
+> Focus: fundamentals, what agents are, coding first agent, structured outputs with Pydantic, and building a CLI coding agent (Claude Code style).
+
+---
+
+## 1) Agentic AI Fundamentals
+
+### What does “Agentic AI” mean?
+
+Agentic AI means the system can:
+
+* understand a goal
+* plan steps
+* use tools
+* take actions
+* self-correct
+
+Unlike normal chatbot:
+
+* chatbot answers once
+* **agent executes tasks**
+
+✅ Interview line:
+
+> “Agentic AI combines LLM reasoning with tool usage and iterative planning to accomplish goals.”
+
+---
+
+## 2) What exactly are AI Agents?
+
+### Simple definition
+
+An **AI agent** is an LLM-based system that can:
+
+1. decide what to do next
+2. call tools/APIs
+3. use the results
+4. repeat until goal is done
+
+---
+
+### Core components of an agent
+
+#### A) LLM (brain)
+
+* generates plan/actions
+
+#### B) Tools (capabilities)
+
+* file read/write
+* web search
+* database query
+* code execution
+* internal APIs
+
+#### C) Memory
+
+* short-term (conversation context)
+* long-term (vector memory, doc store)
+
+#### D) Orchestrator / Controller
+
+* decides the loop
+* manages retries, failures, tool permissions
+
+#### E) Policies / Guardrails
+
+* prevent unsafe actions
+* restrict tool access
+
+✅ Interview line:
+
+> “Agents are LLMs wrapped with tools, memory, and control logic.”
+
+---
+
+## 3) Agentic Workflow Pattern (must know)
+
+### The standard loop
+
+This is the most common architecture:
+
+1. **Plan** (decide next step)
+2. **Act** (call tool)
+3. **Observe** (read tool result)
+4. **Reflect** (decide continue/stop)
+
+This is sometimes called:
+
+* ReAct (Reason + Act)
+* Plan-and-Execute
+
+✅ Interview line:
+
+> “Most agents use an iterative plan-act-observe loop (ReAct style).”
+
+---
+
+## 4) Coding your First AI Agent (Minimal)
+
+### Minimal agent responsibilities
+
+* take user goal
+* decide tool calls
+* return final answer
+
+Pseudo-code:
+
+```python
+while not done:
+    action = llm(plan_prompt + history)
+    if action is tool_call:
+        result = tool(action)
+        history.append(result)
+    else:
+        done = True
+        return action
+```
+
+✅ Key point:
+
+> It’s not just prompting. The real agent logic is the loop + tool execution.
+
+---
+
+## 5) Enforcing Structured Outputs with Pydantic (critical for production)
+
+### Problem
+
+LLM output is unstructured text.
+If you want reliable automation, you need:
+
+* strict schema
+* type safety
+
+### Solution
+
+Use **structured output**:
+
+* define schema using Pydantic
+* force LLM to output JSON
+* validate with Pydantic
+
+✅ Interview line:
+
+> “Structured outputs convert LLM responses into valid typed objects for safe automation.”
+
+---
+
+### Example schema
+
+```python
+from pydantic import BaseModel
+from typing import Literal, Optional
+
+class ToolCall(BaseModel):
+    tool: Literal["read_file", "write_file", "run_tests", "none"]
+    path: Optional[str] = None
+    content: Optional[str] = None
+```
+
+### Why it matters
+
+* eliminates parsing errors
+* prevents hallucinated tool names
+* makes agents production-ready
+
+---
+
+## 6) Building a CLI Coding Agent (Claude Code style)
+
+### What is a coding agent?
+
+An agent that can:
+
+* read your repository
+* understand files
+* modify code
+* run tests
+* commit changes
+
+It behaves like an AI developer.
+
+✅ Interview line:
+
+> “A coding agent is an LLM connected to a toolset for repo navigation, editing, and running code.”
+
+---
+
+### Toolset required for CLI coding agent
+
+Minimum tools:
+
+1. `list_files()`
+2. `read_file(path)`
+3. `write_file(path, content)`
+4. `search(pattern)`
+5. `run_command(cmd)`
+6. `run_tests()`
+
+---
+
+### Agent workflow
+
+#### Step 1: Parse user request
+
+Example:
+
+> “Add a new endpoint /health in FastAPI.”
+
+#### Step 2: Plan
+
+* locate app entry point
+* add endpoint
+* run tests
+
+#### Step 3: Execute tool calls
+
+* read files
+* edit files
+* run unit tests
+
+#### Step 4: Final response
+
+* explain changes
+* show diff
+
+---
+
+### Recommended design pattern: state machine
+
+Instead of one loop, define states:
+
+* ANALYZE
+* PLAN
+* EDIT
+* TEST
+* FIX
+* FINAL
+
+This improves reliability.
+
+---
+
+## 7) Preventing dangerous agent behavior (Guardrails)
+
+### Key risk
+
+Agents can:
+
+* delete files
+* leak secrets
+* run harmful commands
+
+### Guardrail techniques
+
+* tool permission control
+* command allowlist/denylist
+* sandbox execution
+* dry-run mode
+
+✅ Interview line:
+
+> “Agents must operate with least privilege and audited tool actions.”
+
+---
+
+## 8) Whatever important concepts you should know (high interview value)
+
+### 8.1 Function calling / tool calling
+
+Instead of free-form output, model returns:
+
+* tool name
+* arguments
+
+Then orchestrator executes tool.
+
+Benefit:
+
+* drastically improves correctness
+
+---
+
+### 8.2 Agent memory types
+
+* short-term: chat history
+* long-term: vector DB memory
+
+---
+
+### 8.3 Multi-agent systems
+
+Instead of one agent:
+
+* planner agent
+* coding agent
+* reviewer agent
+
+Used for better accuracy.
+
+---
+
+### 8.4 Determinism (important)
+
+Agents should be reproducible:
+
+* low temperature
+* structured outputs
+* retries
+* logging
+
+---
+
+## 9) Evaluation for Agents
+
+You evaluate:
+
+* task completion rate
+* tool call correctness
+* number of iterations
+* safety violations
+
+✅ Interview line:
+
+> “Agent evaluation includes not only output quality but also tool safety and task completion.”
+
+---
+
+## 10) 1-minute Interview Answer (ready)
+
+> “AI agents are LLM-based systems that can plan, use tools, and iterate to complete tasks. They follow a plan-act-observe loop like ReAct. A production agent needs structured outputs using schemas like Pydantic to make tool calls reliable and prevent hallucinated formats. For example, a CLI coding agent integrates tools to read/write files, search the repo, run commands, and execute tests. Guardrails like least privilege and allowlisted commands are essential to prevent unsafe actions, and evaluation is based on task completion, tool correctness, latency, and safety.”
+
+---
+
+## 11) Mini Glossary
+
+* **Agent**: LLM + tools + loop
+* **ReAct**: reasoning + acting loop
+* **Orchestrator**: controller that runs the loop
+* **Tool calling**: structured execution of external actions
+* **Structured output**: JSON schema-validated response
+* **Pydantic**: Python library for schema validation
+
+
+# Generative AI Interview Notes — LangGraph Workflows + Agent Memory + Knowledge Graphs + MCP
+
+> Goal: Interview-ready notes for building **agentic workflows** with LangGraph + memory layer + knowledge graphs + Model Context Protocol.
+> DS-friendly: explained simply first, then engineering details.
+
+---
+
+## 1) Building Agentic Workflows with LangGraph
+
+### What is LangGraph? (simple)
+
+**LangGraph** is a framework to build **LLM workflows as a graph**.
+
+Instead of writing one long agent loop, you create:
+
+* **nodes** = steps (LLM call, tool call, retrieval, validator)
+* **edges** = transitions (what happens next)
+* supports branching, retry loops, human approval
+
+✅ Interview line:
+
+> “LangGraph lets us build agentic systems as graphs—more controllable than a single agent loop.”
+
+---
+
+### Why LangGraph vs simple agent loop?
+
+A basic agent loop is:
+
+* hard to control
+* hard to debug
+* unpredictable
+
+LangGraph adds:
+
+* deterministic workflow structure
+* state management
+* retries and fallbacks
+* multi-agent workflows
+
+✅ Interview line:
+
+> “LangGraph is used when we need reliable, production-ready agent workflows with control and observability.”
+
+---
+
+### Graph concepts (must know)
+
+#### A) State
+
+A dictionary/object passed through nodes, e.g.
+
+* conversation history
+* tool outputs
+* intermediate reasoning
+* retrieved documents
+
+#### B) Nodes
+
+Functions like:
+
+* `plan_node`
+* `retrieve_node`
+* `tool_node`
+* `answer_node`
+
+#### C) Edges
+
+Routing rules:
+
+* if validation fails → go back to retrieval
+* if tool needed → tool node
+* else → final
+
+---
+
+### Common LangGraph workflow patterns
+
+#### Pattern 1: ReAct graph (Reason-Act loop)
+
+* plan → tool → observe → repeat
+
+#### Pattern 2: Plan-and-Execute graph
+
+* planning node generates steps
+* executor runs steps
+
+#### Pattern 3: Human-in-the-loop
+
+* LLM suggests action
+* human approves
+* then agent executes
+
+✅ Interview line:
+
+> “LangGraph helps implement complex agent designs like ReAct, plan-execute, and human approval as a formal graph.”
+
+---
+
+## 2) The Memory Layer in AI Agents
+
+### Why memory matters
+
+Agents fail without memory because:
+
+* they forget decisions
+* they repeat actions
+* they lose task context
+
+Memory makes agents:
+
+* consistent
+* personalized
+* better at long workflows
+
+---
+
+### 3 types of memory (interview must)
+
+#### A) Short-term memory (working memory)
+
+* stored inside prompt/context
+* includes chat history and intermediate results
+
+✅ Typical implementation
+
+* keep last N messages
+* summarize older history
+
+---
+
+#### B) Long-term memory
+
+* persistent storage across sessions
+* stores user facts, preferences, past tasks
+
+✅ Implementation
+
+* DB/document store
+* key-value memory
+* event log
+
+---
+
+#### C) Semantic memory (vector memory) ✅
+
+* stores embeddings
+* retrieve relevant memories by similarity
+
+✅ Implementation
+
+* embeddings + vector DB
+* retrieval step inserts memories into prompt
+
+✅ Interview line:
+
+> “Semantic memory is vector-based retrieval for agent memory, similar to RAG but for personal agent context.”
+
+---
+
+### Memory design pattern (very useful)
+
+1. write: store important events into memory
+2. read: retrieve relevant memories for current context
+3. summarize: compress memory periodically
+
+---
+
+### Important memory risks
+
+* privacy/PII leakage
+* memory poisoning (bad inputs stored)
+* irrelevant memory retrieval
+
+---
+
+## 3) Knowledge Graphs in AI Agents
+
+### What is a Knowledge Graph (KG)?
+
+A **knowledge graph** is structured information stored as:
+
+* nodes = entities (product, customer, issue)
+* edges = relationships (uses, depends on, caused by)
+
+Example:
+
+* (PrinterModelX) —hasIssue→ (PaperJam)
+* (PaperJam) —resolvedBy→ (CleanRoller)
+
+✅ Interview line:
+
+> “Knowledge graphs capture structured entity relationships; agents can query them for factual reasoning.”
+
+---
+
+### Why use KG in agents (vs only RAG)?
+
+RAG is text-based:
+
+* retrieves chunks
+
+KG is structure-based:
+
+* supports exact relationships
+* supports reasoning across entities
+
+Best practice:
+✅ Combine KG + RAG
+
+* KG: entity resolution + relationships
+* RAG: detailed unstructured text explanation
+
+---
+
+### KG powered agent workflow
+
+1. detect entities from user question
+2. query KG for relationships
+3. retrieve docs via RAG for details
+4. answer with citations
+
+---
+
+### KG query options
+
+* SPARQL (RDF graphs)
+* Graph databases like Neo4j (Cypher)
+
+---
+
+## 4) Model Context Protocol (MCP)
+
+### What is MCP (simple)
+
+**MCP = Model Context Protocol** is a standard way for LLM apps/agents to:
+
+* connect to tools
+* connect to data sources
+* access context in a consistent API
+
+Think of MCP like:
+
+> “USB-C for AI tools”
+
+Instead of custom integrations for every tool, MCP standardizes it.
+
+✅ Interview line:
+
+> “MCP standardizes how agents interact with tools and context, making integrations reusable.”
+
+---
+
+### Why MCP matters
+
+Without MCP:
+
+* each tool integration is custom (fragile)
+
+With MCP:
+
+* plug-and-play tools
+* less engineering time
+* consistent security model
+
+---
+
+### MCP concepts (high level)
+
+#### A) MCP Server
+
+Exposes:
+
+* tools
+* resources
+
+Example:
+
+* filesystem server
+* database server
+* jira server
+
+#### B) MCP Client (agent app)
+
+* calls MCP server tools
+* receives results
+
+#### C) Tools and Resources
+
+* **Tools** = actions (create ticket, run query)
+* **Resources** = data (file content, db table)
+
+---
+
+### MCP benefits for enterprise
+
+* security and governance (controlled access)
+* audit logs
+* consistent permissioning
+
+---
+
+## 5) How these 4 topics connect (interview clarity)
+
+A production agent stack could be:
+
+* **LangGraph**: workflow orchestration (graph)
+* **Memory layer**: persistence + semantic memory retrieval
+* **Knowledge Graph**: structured reasoning layer
+* **MCP**: standardized tool/data integration layer
+
+✅ Interview line:
+
+> “LangGraph orchestrates. Memory personalizes. Knowledge graphs add structured reasoning. MCP standardizes tool access.”
+
+---
+
+## 6) Interview Questions (High probability)
+
+### Q1: Why LangGraph?
+
+> “To build controllable agentic workflows with state, branching, retries, and human approval.”
+
+### Q2: What are different memory types?
+
+> “Short-term memory in context window, long-term persistent storage, semantic memory via embeddings + vector DB.”
+
+### Q3: Why knowledge graph in agent?
+
+> “Graphs provide structured relationships and reasoning; combined with RAG gives better factual accuracy.”
+
+### Q4: What is MCP and why important?
+
+> “MCP is a protocol that standardizes how agents access tools and context, enabling reusable integrations and governance.”
+
+---
+
+## 7) Glossary
+
+* **LangGraph**: graph-based agent workflow framework
+* **State**: shared info passed between nodes
+* **Semantic memory**: vector-based retrieval memory
+* **Knowledge graph**: entities + relations
+* **MCP**: standardized context/tool access
