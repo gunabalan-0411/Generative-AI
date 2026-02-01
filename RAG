@@ -1,0 +1,361 @@
+# Generative AI Interview Notes — RAG End-to-End (Retrieval Augmented Generation)
+
+> Goal: Explain RAG in a **complete end-to-end** manner (interview-ready), with simple definitions for DS.
+> Focus: architecture, pipeline, chunking, embedding, vector DB, retrieval, reranking, prompt construction, evaluation, and production concerns.
+
+---
+
+## 1) What is RAG? (Simple definition)
+
+**RAG = Retrieval + Generation**
+
+Instead of forcing LLM to answer only from its memory, we:
+
+1. **retrieve relevant documents** from external knowledge
+2. provide them as context
+3. generate grounded answer
+
+✅ Interview line:
+
+> “RAG reduces hallucination by grounding LLM responses on retrieved context from a knowledge base.”
+
+---
+
+## 2) Why RAG is used (Important)
+
+LLMs have limitations:
+
+* knowledge cutoff
+* hallucinations
+* cannot store private company docs
+
+RAG fixes this:
+
+* answers using **fresh** and **private** data
+* improves accuracy with citations
+* cheaper than fine-tuning for many use cases
+
+✅ When to prefer RAG vs fine-tuning
+
+* RAG: new docs frequently, need citations, enterprise knowledge
+* Fine-tuning: change writing style, domain language, task-specific behavior
+
+---
+
+## 3) RAG End-to-End Architecture
+
+### High level components
+
+1. **Data sources**: PDFs, websites, Confluence, SharePoint, DB
+2. **Ingestion pipeline**
+3. **Chunking**
+4. **Embedding model**
+5. **Vector database**
+6. **Retriever**
+7. **Reranker (optional)**
+8. **Prompt builder**
+9. **LLM generation**
+10. **Post-processing + guardrails**
+11. **Evaluation + monitoring**
+
+---
+
+## 4) RAG Pipeline Step-by-Step (Interview explanation)
+
+### Step 1: Ingestion (collect documents)
+
+* load raw docs
+* remove headers/footers
+* detect language
+
+Common loaders:
+
+* PDF loader
+* HTML/web loader
+* database loader
+
+✅ Interview line:
+
+> “Ingestion converts raw enterprise docs into clean text with metadata.”
+
+---
+
+### Step 2: Chunking (most critical design)
+
+LLMs have context limits → store docs as chunks.
+
+#### What is chunking?
+
+Split documents into smaller parts:
+
+* 200 to 1000 tokens per chunk (depends)
+
+#### Why chunking matters?
+
+Bad chunking causes:
+
+* missing context
+* wrong retrieval
+* hallucinations
+
+#### Chunking strategies
+
+* fixed-size chunking
+* sentence/paragraph based
+* recursive chunking
+* semantic chunking (advanced)
+
+✅ Best practice
+
+* add **overlap** (e.g., 10–20%)
+* preserve section headers
+
+---
+
+### Step 3: Metadata enrichment
+
+Attach metadata to each chunk:
+
+* doc title
+* section header
+* product name
+* created_at
+* url
+* access level (permissions)
+
+✅ Interview line:
+
+> “Metadata improves filtering and helps return citations.”
+
+---
+
+### Step 4: Embedding generation
+
+Convert each chunk → embedding vector.
+
+#### Embedding model choice
+
+* general embeddings: good for broad docs
+* domain embeddings: better retrieval for technical corpora
+
+Stores:
+
+* `embedding_vector`
+* `chunk_text`
+* `metadata`
+
+---
+
+### Step 5: Store in Vector Database
+
+Vector DB supports:
+
+* similarity search (cosine/dot-product)
+* metadata filtering
+* scalable indexing
+
+Examples:
+
+* FAISS (local)
+* Pinecone
+* Weaviate
+* Milvus
+* OpenSearch vector search
+
+✅ Interview line:
+
+> “Vector DB indexes embeddings so we can retrieve semantically similar chunks quickly.”
+
+---
+
+### Step 6: Query-time retrieval
+
+At runtime:
+
+1. user question → query embedding
+2. search vector DB
+3. return top-k chunks
+
+Important knobs:
+
+* top-k (e.g., 3–10)
+* similarity threshold
+* metadata filters
+
+---
+
+### Step 7: Reranking (optional but high value)
+
+Problem:
+
+* vector similarity retrieval may return loosely related chunks
+
+Solution:
+
+* reranker ranks retrieved docs by relevance to query
+
+Common rerankers:
+
+* cross-encoder models
+* LLM-as-reranker
+
+✅ Interview line:
+
+> “Reranking improves retrieval precision before sending context to the LLM.”
+
+---
+
+### Step 8: Prompt construction (Context injection)
+
+Combine:
+
+* system prompt
+* user query
+* retrieved context
+
+Good prompt includes:
+
+* instruction to cite sources
+* instruction to answer only from context
+* refusal if context missing
+
+Example structure:
+
+```
+SYSTEM: You are an assistant answering using the context only.
+CONTEXT:
+- [Doc1 chunk]
+- [Doc2 chunk]
+USER: <question>
+```
+
+---
+
+### Step 9: Generation
+
+LLM outputs answer.
+
+Post-processing:
+
+* format output
+* add citations
+* highlight sources
+
+---
+
+## 5) Retrieval types (Important interview concept)
+
+### A) Dense retrieval (embeddings) ✅
+
+* semantic matching
+* best for meaning
+
+### B) Sparse retrieval (BM25)
+
+* keyword-based retrieval
+* best for exact terms
+
+### C) Hybrid retrieval (best practice)
+
+Combine dense + sparse.
+
+✅ Interview line:
+
+> “Hybrid retrieval is common because sparse handles keywords and dense handles meaning.”
+
+---
+
+## 6) Common RAG Failure Modes
+
+### 1) Poor chunking
+
+* missing relevant info
+
+### 2) Incorrect retrieval
+
+* embedding model mismatch
+
+### 3) Context too large
+
+* too many chunks confuse LLM
+
+### 4) Hallucination despite retrieval
+
+* weak prompting
+* not enforcing grounding
+
+### 5) Wrong citations
+
+* chunks too similar
+
+---
+
+## 7) Evaluation (must know)
+
+### Retrieval evaluation
+
+* Recall@k
+* Precision@k
+* MRR (mean reciprocal rank)
+
+### Generation evaluation
+
+* factuality
+* relevance
+* groundedness
+
+### Techniques
+
+* human eval
+* LLM-as-judge (careful)
+* golden dataset Q&A
+
+✅ Interview line:
+
+> “RAG evaluation requires measuring both retrieval quality and generation groundedness.”
+
+---
+
+## 8) Production Considerations
+
+### A) Latency
+
+* retrieval adds extra time
+* fix: caching, smaller embedding dims, reranker only for hard queries
+
+### B) Cost control
+
+* limit context tokens
+* compress context
+* batch embedding generation offline
+
+### C) Access control (enterprise)
+
+* user should retrieve only permitted docs
+* enforce ACL filtering
+
+### D) Monitoring
+
+Track:
+
+* retrieval hit rate
+* no-answer rate
+* hallucination reports
+* top failing queries
+
+---
+
+## 9) Interview Ready Explanation (1-minute)
+
+> “RAG is retrieval augmented generation. We ingest enterprise docs, clean and chunk them, generate embeddings for each chunk, and store them in a vector database. At query time, we embed the user query, retrieve top-k relevant chunks (optionally rerank them), then build a prompt with retrieved context and ask the LLM to answer grounded only in context with citations. RAG is preferred when knowledge changes frequently or we need private data and citations, and evaluation includes both retrieval metrics like recall@k and generation metrics like groundedness.”
+
+---
+
+## 10) Mini Glossary
+
+* **Chunk**: small section of doc stored for retrieval
+* **Embedding**: vector representing meaning
+* **Vector DB**: database optimized for similarity search
+* **Retriever**: component that fetches relevant chunks
+* **Reranker**: improves ordering of retrieved chunks
+* **Grounding**: forcing answer based on context
