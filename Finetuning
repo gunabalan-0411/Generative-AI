@@ -1,0 +1,454 @@
+# Generative AI Interview Notes — Fine-tuning (LoRA/QLoRA) + RLHF/DPO + Hallucination/Guardrails + Eval + Agents/Tools
+
+> Goal: interview-ready end-to-end notes for **applied GenAI / LLM engineering**.
+> DS-friendly: every concept is explained in simple lines and then in technical depth.
+
+---
+
+## 0) Where these topics fit in GenAI stack
+
+### You typically have 3 ways to improve LLM results
+
+1. **Prompting** (fastest)
+2. **RAG** (add external knowledge)
+3. **Fine-tuning** (change model behavior)
+
+And to make the system production-ready:
+
+* guardrails/safety
+* evaluation + monitoring
+* agents/tools integration
+
+✅ Interview line:
+
+> “Prompting and RAG improve answers; fine-tuning changes the model itself; guardrails + eval make it production-grade.”
+
+---
+
+## 1) Fine-tuning Basics (before LoRA)
+
+### What is fine-tuning?
+
+Continue training a pretrained LLM on your dataset.
+
+What fine-tuning changes:
+
+* style/tone
+* domain-specific instruction following
+* task performance (classification, extraction)
+
+What fine-tuning does NOT do well:
+
+* it’s not the best approach to *store factual knowledge*
+
+  * for facts that change often → use RAG
+
+---
+
+### Fine-tuning types
+
+#### A) Supervised Fine-tuning (SFT) ✅
+
+Train on (instruction → answer) pairs.
+
+Example:
+
+* Input: “Summarize this call transcript”
+* Output: “Customer is angry about…”
+
+#### B) Preference fine-tuning
+
+Train using ranked outputs.
+
+---
+
+## 2) LoRA (Low-Rank Adaptation)
+
+### Why LoRA exists?
+
+Full fine-tuning is expensive:
+
+* billions of parameters
+* GPU memory explosion
+
+LoRA trains a small number of additional parameters:
+
+* faster
+* cheaper
+* easier to store versioned adapters
+
+✅ Interview line:
+
+> “LoRA fine-tunes LLMs efficiently by training small low-rank adapter matrices instead of updating all weights.”
+
+---
+
+### LoRA intuition (very interview friendly)
+
+Think of the LLM as a huge brain.
+LoRA attaches **small plug-in layers**.
+
+Instead of retraining the whole model, you train only the plug-in.
+
+---
+
+### Technical detail (safe depth)
+
+During training:
+
+* original weight matrix W is frozen
+* learn ΔW where ΔW = A·B (low rank)
+
+So effective weight becomes:
+
+* W' = W + ΔW
+
+Where rank r is small (e.g., 8, 16, 64).
+
+---
+
+### LoRA practical benefits
+
+* can fine-tune on a single GPU
+* multiple LoRA adapters for different tasks
+* base model stays unchanged
+
+---
+
+## 3) QLoRA (Quantized LoRA)
+
+### Why QLoRA?
+
+Even LoRA needs RAM for base model.
+QLoRA reduces memory further by quantizing base model.
+
+✅ Interview line:
+
+> “QLoRA uses 4-bit quantization for the base model plus LoRA adapters, enabling fine-tuning large models on limited GPUs.”
+
+---
+
+### What changes in QLoRA?
+
+* base model weights stored in 4-bit quantization
+* gradients applied to LoRA adapters
+* compute still uses higher precision internally where needed
+
+---
+
+### When LoRA vs QLoRA
+
+* LoRA: if you have enough GPU memory
+* QLoRA: if hardware is limited
+
+---
+
+## 4) RLHF (Reinforcement Learning from Human Feedback)
+
+### Why RLHF is used?
+
+SFT teaches the model to imitate answers.
+But we also want:
+
+* helpfulness
+* harmlessness
+* preference alignment
+
+RLHF aligns model to human preference.
+
+✅ Interview line:
+
+> “RLHF aligns the model to human preferences by using a reward model and reinforcement learning.”
+
+---
+
+### RLHF pipeline (classic)
+
+1. **SFT model**
+2. collect human preference data
+
+   * prompt + response A vs response B
+3. train **Reward Model (RM)**
+
+   * RM scores output quality
+4. run RL algorithm (commonly PPO)
+
+   * maximize reward
+
+---
+
+### Key RLHF components
+
+* **Reward model**: predicts what humans prefer
+* **Policy model**: the LLM being improved
+* **PPO**: stable RL algorithm for fine-tuning
+
+---
+
+### RLHF limitations (interview plus)
+
+* expensive
+* complex pipeline
+* reward hacking risk
+
+---
+
+## 5) DPO (Direct Preference Optimization) — modern alternative
+
+### Why DPO?
+
+RLHF is heavy.
+DPO is simpler.
+
+DPO trains directly on preference pairs:
+
+* (prompt, chosen_response, rejected_response)
+
+No explicit reward model training required.
+
+✅ Interview line:
+
+> “DPO simplifies RLHF by optimizing preferences directly from chosen vs rejected responses.”
+
+---
+
+### When DPO is preferred
+
+* when preference dataset exists
+* when you want stable, simpler training
+
+---
+
+## 6) Hallucination — what it is and why it happens
+
+### Definition
+
+Hallucination = LLM generates confident but incorrect statements.
+
+### Why hallucinations happen
+
+Because LLM is trained to generate plausible text, not truth.
+
+Causes:
+
+* missing context
+* ambiguous question
+* weak prompting
+* retrieval failure in RAG
+* overly high temperature
+
+✅ Interview line:
+
+> “Hallucination happens because LLMs optimize for plausibility, not factual correctness.”
+
+---
+
+## 7) Guardrails (safety + correctness)
+
+### What are guardrails?
+
+Rules and checks to ensure the system outputs:
+
+* safe content
+* grounded answers
+* policy compliant responses
+
+---
+
+### Common guardrail techniques (must know)
+
+#### A) Prompt guardrails
+
+* system prompt constraints
+* refusal instructions
+
+#### B) Input validation
+
+* detect jailbreak prompts
+* detect PII
+
+#### C) Output validation
+
+* toxicity checks
+* hallucination checks
+* verify citations
+
+#### D) Retrieval guardrails
+
+* minimum similarity threshold
+* deny answer if context is missing
+
+---
+
+### Grounded answering pattern (very common)
+
+If context missing:
+
+* respond: “Not found in documents”
+* ask follow-up
+
+✅ Interview line:
+
+> “Guardrails combine prompt constraints + input/output validation + retrieval constraints.”
+
+---
+
+## 8) Evaluation (LLM eval is a big interview topic)
+
+### Why LLM evaluation is hard?
+
+* not a single correct output
+* needs human preference often
+
+---
+
+### Evaluation categories
+
+#### A) Task metrics
+
+* accuracy, F1 (for extraction/classification)
+* Rouge/BLEU (summarization/translation; limited)
+
+#### B) Quality metrics (LLM specific)
+
+* relevance
+* helpfulness
+* coherence
+* groundedness
+* factual consistency
+
+#### C) Safety metrics
+
+* toxicity
+* jailbreak resistance
+* PII leakage
+
+---
+
+### RAG evaluation (important)
+
+* retrieval recall@k
+* precision@k
+* groundedness score
+
+---
+
+### Practical evaluation methods
+
+#### 1) Golden dataset
+
+* curated Q/A pairs
+
+#### 2) Human evaluation
+
+* best but costly
+
+#### 3) LLM-as-judge
+
+* cheap but must be calibrated
+
+✅ Interview line:
+
+> “Good evaluation blends golden datasets + targeted human eval + LLM-judge, with safety checks.”
+
+---
+
+## 9) Agents & Tools (Tool-Calling)
+
+### What is an agent?
+
+An LLM that can:
+
+* plan
+* call tools
+* iterate
+
+Instead of just answering, agent can take actions.
+
+✅ Interview line:
+
+> “Agents use LLM reasoning plus tool-calling to solve multi-step tasks beyond static Q&A.”
+
+---
+
+### What are tools?
+
+External capabilities like:
+
+* database query
+* web search
+* calculator
+* Python execution
+* API calls
+
+---
+
+### Agent workflow (simple)
+
+1. Receive user goal
+2. Decide which tool is needed
+3. Call tool
+4. Observe tool result
+5. Repeat until done
+
+---
+
+### Why tools reduce hallucination
+
+Instead of guessing:
+
+* search / compute / retrieve real info
+
+---
+
+### Typical agent use cases
+
+* customer support automation
+* analytics Q&A
+* ticket triage
+* report generation
+
+---
+
+## 10) Production checklist (high signal)
+
+### For fine-tuned models
+
+* dataset versioning
+* eval regression tests
+* safety tests
+
+### For RAG
+
+* chunking quality
+* retrieval monitoring
+* citation accuracy
+
+### For agents
+
+* tool permissioning (least privilege)
+* action limits
+* logging + audit trails
+
+✅ Interview line:
+
+> “In production, the key is reliability: guardrails, evaluation, monitoring, and rollback.”
+
+---
+
+## 11) 1-minute Interview Answer (all topics combined)
+
+> “To improve LLM performance, we can use RAG for knowledge grounding and fine-tuning for behavioral adaptation. Fine-tuning can be full SFT, but more efficient methods like LoRA and QLoRA train small adapters and can run on limited GPUs. For alignment, RLHF trains a reward model and uses PPO, while DPO is a simpler preference optimization approach. In production, hallucinations are controlled using guardrails like retrieval thresholds, citation enforcement, and output validation. We evaluate using golden datasets, targeted human eval, and LLM-as-judge methods, and for complex workflows we use agents with tool-calling to fetch real data and reduce hallucinations.”
+
+---
+
+## 12) Mini Glossary
+
+* **SFT**: supervised fine-tuning
+* **LoRA**: low-rank adapter tuning
+* **QLoRA**: LoRA + quantized base model
+* **RLHF**: preference alignment with reward model + RL
+* **DPO**: direct preference optimization
+* **Guardrails**: safety + grounding constraints
+* **LLM-as-judge**: using LLM to evaluate outputs
+* **Agent**: LLM that can plan + call tools
