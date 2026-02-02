@@ -84,8 +84,9 @@ Common decoding (interview-level):
 
 * **Greedy decoding**: pick highest probability token
 * **Beam search**: keep top-k sequences (good for translation)
-* **Top-k sampling**: sample from top k tokens
-* **Top-p (nucleus) sampling**: sample from smallest set with cumulative prob p
+* **Top-k sampling**: sample from top k tokens : `top_k = 50` → model will sample only from top 50 tokens.
+* **Top-p (nucleus) sampling**: sample from smallest set with cumulative prob p : `top_p = 0.9` → pick smallest token set whose total probability is 90%, then sample from that set.
+* If both set, the filter is done by order, first is top-k then top-p
 * **Temperature**: controls randomness
 
 ✅ Interview line:
