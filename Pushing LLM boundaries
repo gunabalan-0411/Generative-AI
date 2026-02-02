@@ -1,0 +1,497 @@
+# Pushing LLM Boundaries (Easy + In-depth)
+
+This canvas explains **how people make LLMs faster, cheaper, and deployable** without losing too much quality.
+
+We will cover:
+
+1. Sparse Attention
+2. FlashAttention
+3. Quantization
+4. Pruning
+5. Distillation
+6. LoRA / PEFT
+7. Evaluating AI Agents
+
+---
+
+# 1) First: Why do we even need these techniques?
+
+LLMs are expensive because of:
+
+### A) Parameters (weights)
+
+* stored in GPU memory (VRAM)
+
+### B) Attention compute
+
+Attention cost grows ~quadratically with context length:
+
+`O(n^2)` where n = number of tokens
+
+So if context doubles → attention cost increases ~4x.
+
+### C) Inference bottlenecks
+
+In production:
+
+* latency matters (response time)
+* throughput matters (requests/sec)
+* cost matters ($ per 1M tokens)
+
+So these techniques are about:
+✅ reducing compute
+✅ reducing memory
+✅ keeping accuracy acceptable
+
+---
+
+# 2) Sparse Attention (simple)
+
+## 2.1 What is attention?
+
+In normal attention, each token looks at **all tokens before it**.
+
+If you have 8k tokens, each token attends to thousands of tokens.
+
+## 2.2 What is Sparse Attention?
+
+Sparse attention means:
+
+> A token attends to only a **subset** of tokens
+
+Instead of full matrix attention, we use patterns like:
+
+* local attention (nearby tokens)
+* sliding window
+* strided tokens
+* global tokens (special ones that attend widely)
+
+### Simple example
+
+If you are reading a book:
+
+* to understand a sentence, you mostly need nearby sentences
+* not the entire book always
+
+So sparse attention matches this behavior.
+
+### Benefit
+
+✅ attention becomes cheaper
+
+* closer to `O(n)` or `O(n log n)` depending on pattern
+
+### Risk
+
+❌ might miss long-range dependencies
+(e.g., answer is in earlier part of context)
+
+---
+
+# 3) FlashAttention (very important)
+
+## 3.1 What problem does FlashAttention solve?
+
+Even if math operations are fast, attention is slow because of:
+
+* GPU memory reads/writes
+* attention matrix is huge (`n x n`)
+
+Most cost is not compute, but **memory bandwidth**.
+
+## 3.2 What does FlashAttention do?
+
+FlashAttention is an algorithmic + GPU optimization that:
+
+✅ computes attention in blocks (tiling)
+✅ avoids storing full attention matrix
+✅ reduces memory movement
+
+### Easy analogy
+
+Instead of writing everything to notebook and reading again:
+
+* do calculations in small chunks
+* keep in fast memory
+
+### Result
+
+✅ faster training/inference
+✅ less memory usage
+✅ enables longer context
+
+---
+
+# 4) Quantization (most common in deployment)
+
+## 4.1 What is quantization?
+
+Quantization means storing model weights with fewer bits:
+
+* FP32 (32-bit float) — very heavy
+* FP16 / BF16 (16-bit)
+* INT8 (8-bit)
+* INT4 (4-bit)
+
+### Easy example
+
+Instead of storing decimal accuracy like:
+
+* 3.14159265
+  store approximate value like:
+* 3.14
+
+Same idea for billions of weights.
+
+## 4.2 Why it helps
+
+✅ lower memory → run bigger models on same GPU
+✅ faster inference (esp INT8/INT4)
+✅ cheaper deployment
+
+## 4.3 Types of quantization
+
+### A) Post-Training Quantization (PTQ)
+
+Quantize without retraining.
+
+* fast
+* slightly lower accuracy
+
+### B) Quantization-Aware Training (QAT)
+
+Train while simulating low precision.
+
+* better accuracy
+* more complex
+
+## 4.4 Tradeoffs
+
+* INT8 usually safe
+* INT4 can degrade reasoning / math tasks
+
+---
+
+# 5) Pruning
+
+## 5.1 What is pruning?
+
+Pruning removes unnecessary weights/neurons.
+
+### Idea
+
+Many weights contribute very little.
+So remove them → smaller model.
+
+## 5.2 Types
+
+### A) Unstructured pruning
+
+Remove individual weights.
+
+* achieves high sparsity
+* but GPU speedup is hard (irregular pattern)
+
+### B) Structured pruning
+
+Remove whole:
+
+* neurons
+* attention heads
+* layers
+* channels
+
+✅ easier to accelerate on hardware
+
+## 5.3 Risks
+
+If pruning is aggressive:
+
+* model loses capability
+* especially reasoning + instruction-following
+
+---
+
+# 6) Distillation
+
+## 6.1 What is distillation?
+
+Distillation trains a smaller model (student) to imitate a larger model (teacher).
+
+### Simple analogy
+
+Teacher = senior professor
+Student = junior student
+
+Instead of reading all textbooks, student learns from:
+
+* teacher’s answers
+* teacher’s probabilities (soft targets)
+
+## 6.2 Why it works
+
+Teacher outputs are informative:
+
+* not only correct answer
+* but likelihood of alternatives
+
+So student learns smoother decision boundaries.
+
+## 6.3 Types
+
+### A) Logit distillation
+
+Student matches teacher’s probability distribution.
+
+### B) Sequence-level distillation
+
+Teacher generates full responses.
+Student is trained on those.
+
+## 6.4 Benefits
+
+✅ smaller model with good quality
+✅ faster + cheaper
+
+---
+
+# 7) LoRA (Low-Rank Adaptation) — the best fine-tuning method
+
+## 7.1 Problem with fine-tuning
+
+Full fine-tuning means updating:
+
+* billions of weights
+
+Costly, slow, and needs huge GPU.
+
+## 7.2 What is LoRA?
+
+LoRA freezes original model weights.
+Instead, it learns small low-rank matrices:
+
+`W_new = W + ΔW`
+
+But `ΔW` is represented using low-rank:
+
+`ΔW = A * B`
+
+where A and B are small matrices.
+
+### Easy analogy
+
+Instead of rewriting whole textbook:
+
+* add sticky notes (small changes)
+
+## 7.3 Benefits
+
+✅ much less trainable parameters
+✅ fits in 1 GPU
+✅ faster training
+✅ easy to store multiple adapters
+
+## 7.4 Where LoRA is applied
+
+Usually inside:
+
+* attention projection layers (Q,K,V,O)
+* sometimes MLP layers
+
+---
+
+# 8) Putting it together (how people optimize an LLM)
+
+### Typical deployment optimization path
+
+1. Start with base LLM (e.g., 7B/13B)
+2. Fine-tune using LoRA
+3. Quantize to INT8/INT4
+4. Use FlashAttention kernels
+5. Optionally prune or distill
+
+Goal: maximum quality per cost.
+
+---
+
+# 9) Evaluating AI Agents (simple but important)
+
+Now the big topic: AI Agents.
+
+## 9.1 What is an Agent?
+
+An AI Agent is an LLM system that can:
+
+✅ plan steps
+✅ call tools (search, code, database)
+✅ take actions
+✅ self-correct
+✅ complete tasks
+
+So not just generating text.
+
+---
+
+## 9.2 Why evaluating agents is harder than evaluating LLMs?
+
+Because output is not only “answer quality”.
+Agents must be evaluated on:
+
+* correctness
+* efficiency
+* tool usage quality
+* safety
+* reliability
+
+---
+
+# 10) Core metrics for Agent Evaluation
+
+## 10.1 Task Success Rate
+
+Did it complete the task end-to-end?
+
+Example:
+
+* booking a meeting
+* extracting table
+* running code
+
+Metric:
+
+* % tasks completed
+
+## 10.2 Accuracy / Final Answer Quality
+
+Is final output correct?
+
+* exact match
+* semantic similarity
+* human grading
+
+## 10.3 Tool correctness
+
+Did it use the right tool?
+
+* chose correct tool
+* correct inputs
+* valid outputs
+
+Example:
+
+* agent used calculator instead of hallucinating math
+
+## 10.4 Robustness
+
+How stable is it?
+
+* same task repeated 10 times
+* does it succeed consistently?
+
+## 10.5 Efficiency / Cost
+
+* number of steps
+* number of tokens
+* tool calls
+* latency
+
+Sometimes agent succeeds but wastes 10x cost.
+
+## 10.6 Safety + Policy Compliance
+
+* doesn’t leak sensitive data
+* doesn’t take dangerous actions
+* avoids prompt injection
+
+---
+
+# 11) Agent evaluation methods
+
+## 11.1 Unit tests style (best for production)
+
+For each agent capability:
+
+* define test cases
+* expected outputs
+
+Examples:
+
+* “extract fields from PDF”
+* “write SQL query”
+* “summarize call transcript”
+
+## 11.2 Simulation / sandbox testing
+
+Run agent in a safe environment.
+
+* mock tools
+* controlled APIs
+
+## 11.3 Human evaluation
+
+For subjective tasks:
+
+* helpfulness
+* tone
+* correctness
+
+But human eval is costly.
+
+## 11.4 LLM-as-a-judge
+
+Use a strong LLM to score another.
+
+Pros:
+
+* scalable
+
+Risks:
+
+* bias
+* inconsistent
+
+Best practice:
+
+* calibrate judges with human labels
+
+---
+
+# 12) The most common agent failures
+
+1. Hallucinating tool outputs
+2. Wrong tool selection
+3. Infinite loops (keeps retrying)
+4. Overconfidence without verification
+5. Prompt injection attacks
+6. Poor memory handling
+
+---
+
+# 13) Summary (1-minute)
+
+### LLM efficiency techniques
+
+* **Sparse attention**: attend to fewer tokens
+* **FlashAttention**: compute attention faster (memory optimized)
+* **Quantization**: weights stored in lower bits
+* **Pruning**: remove useless weights/heads/layers
+* **Distillation**: small model learns from big model
+* **LoRA**: cheap fine-tuning using small adapters
+
+### Agent evaluation
+
+Evaluate on:
+
+* task success
+* accuracy
+* tool usage
+* robustness
+* efficiency/cost
+* safety
+
+---
+
+If you want, I can create a second canvas with:
+✅ real industry checklist for agent evaluation
+✅ sample evaluation dataset format
+✅ metrics dashboard template
