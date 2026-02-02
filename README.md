@@ -213,13 +213,24 @@ Why?
 * attention alone has no sense of token order
 
 #### 3) Transformer Blocks (repeated N times)
-
-Each block typically has:
-
 * LayerNorm
-* **Masked Multi-Head Self Attention**
+  * Normalizes the numbers in each layer so training stays stable (no exploding/vanishing values).
+* Masked Multi-Head Self Attention
+  * Each token looks only at earlier tokens to understand context and focus on important ones (future tokens are masked).
+  * bank_vector = embedding(bank) + info(from money, deposited)
 * Feed Forward Network (MLP)
+  * A small neural network applied to each token to refine its representation using nonlinear transformations.
+  * After attention, bank already knows it's finance-related. MLP improves it further, like:
+  * strengthening finance-related features, reducing irrelevant features
 * Residual connections
+  * Adds skip connections so information and gradients flow better, making deep networks trainable.
+  * Example idea: output = original + new
+  * So the token “bank” retains: original “bank” meaning (base embedding) plus new context meaning from attention + MLP
+
+* At the end of this Transformer block:
+* “bank” is no longer a generic word embedding.
+* It becomes a context-aware representation:
+* “bank = place where money is deposited”  
 
 #### 4) Output projection
 
