@@ -168,6 +168,31 @@ Key properties:
 * T5: encoder-decoder
 * GPT: decoder-only (autoregressive)
 
+In simple terms, causal means:
+
+* GPT is not allowed to look at future words.
+* It can only use past + current words to predict the next word.
+
+Example
+Sentence:
+* “I live in Bangalore.”
+
+While generating:
+* To predict “live”, GPT can only see: “I”
+* To predict “in”, GPT can only see: “I live”
+* To predict “Bangalore”, GPT can only see: “I live in”
+
+It cannot peek at “Bangalore” earlier. That’s why it’s called causal (cause → effect):
+* past words = cause
+* next word = effect
+
+* Why is it important?
+
+Because GPT is trained exactly like how it generates text in real life:
+✅ predict next token step-by-step
+✅ left to right
+
+
 ✅ Interview line:
 
 > “GPT is decoder-only: it generates tokens left-to-right using causal attention.”
