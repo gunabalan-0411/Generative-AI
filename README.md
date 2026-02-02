@@ -632,6 +632,12 @@ This is powerful for understanding tasks.
 
 > “Encoders are bidirectional (understanding). Decoders are causal (generation).”
 
+
+* “Encoder” and “Decoder” are roles, not fixed architectures.
+* Autoencoder = encoder/decoder for compression + reconstruction
+* BERT = Transformer encoder-only for understanding
+* GPT = Transformer decoder-only for generation
+
 ---
 
 ## 5) Understanding Multi-Head Attention (MHA) for rich context
