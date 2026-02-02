@@ -42,11 +42,21 @@ An **AI agent** is an LLM-based system that can:
 
 ---
 
-### Core components of an agent
+# Agentic AI — Core Components of an Agent (with libraries + 1-line examples)
+
+### ✅ Core components of an agent
 
 #### A) LLM (brain)
 
 * generates plan/actions
+* **Libraries:** `openai`, `transformers`
+* **Example (1 line):**
+
+  ```python
+  reply = llm("Plan steps to solve this task...")
+  ```
+
+---
 
 #### B) Tools (capabilities)
 
@@ -55,25 +65,58 @@ An **AI agent** is an LLM-based system that can:
 * database query
 * code execution
 * internal APIs
+* **Libraries:** LangChain Tools, LlamaIndex Tools, `requests`, `sqlalchemy`
+* **Example (1 line):**
+
+  ```python
+  result = tool.run("web_search", "latest churn metrics")
+  ```
+
+---
 
 #### C) Memory
 
 * short-term (conversation context)
 * long-term (vector memory, doc store)
+* **Libraries:** LangChain Memory, LlamaIndex, `faiss`, `chromadb`, `pinecone`
+* **Example (1 line):**
+
+  ```python
+  memory.add(text); hits = vectordb.similarity_search(query)
+  ```
+
+---
 
 #### D) Orchestrator / Controller
 
 * decides the loop
 * manages retries, failures, tool permissions
+* **Libraries:** LangGraph, LangChain Agents, CrewAI, AutoGen
+* **Example (1 line):**
+
+  ```python
+  while not done: action = agent.step(state)
+  ```
+
+---
 
 #### E) Policies / Guardrails
 
 * prevent unsafe actions
 * restrict tool access
+* **Libraries:** Guardrails AI, Rebuff, NeMo Guardrails
+* **Example (1 line):**
+
+  ```python
+  if not policy.allow(action): block(action)
+  ```
+
+---
 
 ✅ Interview line:
 
-> “Agents are LLMs wrapped with tools, memory, and control logic.”
+> **“Agents are LLMs wrapped with tools, memory, and control logic.”**
+
 
 ---
 

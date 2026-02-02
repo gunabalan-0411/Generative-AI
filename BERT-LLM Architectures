@@ -646,12 +646,6 @@ Reconstruction error becomes high.
 
 ---
 
-If you want, I can add in this canvas:
-
-1. PyTorch code (simple AE)
-2. Denoising AE example
-3. AE anomaly detection pipeline with threshold selection
-
 # LLM Architecture (In-depth but Easy)
 
 ## 1) What is an LLM?
