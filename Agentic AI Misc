@@ -1,0 +1,417 @@
+# Agent-to-Agent Calling + Loop Detection + Temperature / Top-k / Top-p (Easy + In-Depth)
+
+This canvas explains three important advanced concepts:
+
+1. **Agent-to-Agent calling** (multi-agent systems)
+2. **How to detect if an agent is stuck in a loop**
+3. **Temperature, Top-k, Top-p** decoding (and how it connects to Transformer outputs)
+
+---
+
+# 1) Agent-to-Agent Calling (A2A)
+
+## 1.1 What is agent-to-agent calling?
+
+Agent-to-agent calling means:
+
+> One agent delegates part of a task to another specialized agent.
+
+Think of agents like a team in a company:
+
+* Manager agent: plans the task
+* Research agent: does web search
+* Coding agent: writes code
+* QA agent: checks output
+
+So instead of 1 LLM doing everything, we use **multiple agents**.
+
+---
+
+## 1.2 Why do we need it?
+
+Because tasks are multi-skill.
+
+Example: “Build a churn model + write report + create dashboard insights”
+
+A single agent might:
+
+* hallucinate
+* miss details
+* become inconsistent
+
+Multi-agent design improves:
+✅ reliability
+✅ specialization
+✅ verification
+
+---
+
+## 1.3 Typical A2A architecture patterns
+
+### Pattern A: Supervisor → Workers
+
+One supervisor agent controls workflow.
+
+```
+Supervisor Agent
+   ├── Research Agent
+   ├── Data Agent
+   ├── Code Agent
+   └── Reviewer Agent
+```
+
+Supervisor:
+
+* breaks task into subtasks
+* sends subtasks to workers
+* merges results
+
+---
+
+### Pattern B: Sequential chain
+
+Agents run in pipeline.
+
+Example:
+
+1. Research Agent → collects sources
+2. Summarizer Agent → makes notes
+3. Writer Agent → produces final
+
+---
+
+### Pattern C: Debate / Critique loop
+
+Two agents disagree and critique.
+
+* Agent A answers
+* Agent B finds errors
+* Agent A revises
+
+✅ improves correctness
+
+---
+
+## 1.4 What is “calling” technically?
+
+In implementation, “agent” is usually:
+
+* (System prompt + tools + memory + policy)
+
+So A2A calling means:
+
+* Agent1 triggers Agent2 with:
+
+  * role prompt
+  * task input
+  * constraints
+
+It can be:
+
+* same underlying LLM model
+* or different LLM models
+
+---
+
+## 1.5 Key risks in agent-to-agent calling
+
+### A) Compounding errors
+
+Wrong output from one agent → contaminates others.
+
+### B) Cost explosion
+
+Too many agent calls.
+
+### C) Prompt injection spread
+
+If one agent reads malicious content and passes it.
+
+### D) Coordination failure
+
+Two agents might do redundant work.
+
+---
+
+# 2) How to detect if an agent is stuck in a loop
+
+## 2.1 What is an agent loop?
+
+An agent loop is when the agent:
+
+* repeats same action
+* retries same tool call
+* generates same reasoning
+* never converges to final answer
+
+Example:
+
+* “tool failed → retry” repeatedly
+
+---
+
+## 2.2 Why loops happen?
+
+Most common reasons:
+
+1. Tool failures (API error)
+2. Missing stopping condition in planner
+3. Conflicting goals
+4. Too strict constraints
+5. Low confidence but no escalation policy
+
+---
+
+## 2.3 How to detect loops (practical methods)
+
+### Method A: Step limit (hard cap)
+
+Simple and essential.
+
+Example:
+
+* max tool calls = 10
+* max reasoning steps = 20
+
+If exceeded:
+
+* stop and return partial output
+
+✅ easiest + works always
+
+---
+
+### Method B: Detect repeated actions
+
+Track tool call history:
+
+If you see patterns like:
+
+* tool = search("X") repeated 5 times
+* tool = database_query("same SQL") repeated
+
+Then it’s a loop.
+
+Implementation idea:
+
+* hash(tool_name + args)
+* count frequency
+
+---
+
+### Method C: Similarity-based repetition detection
+
+Even if args vary slightly, the agent may be looping.
+
+Example:
+
+* “retry with different phrasing”
+
+Use:
+
+* embedding similarity
+* edit distance
+
+If similarity > threshold repeatedly → loop.
+
+---
+
+### Method D: No progress heuristic
+
+Track progress score.
+
+Progress indicators:
+
+* new info gained
+* new fields filled
+* decreasing uncertainty
+* fewer missing items
+
+If progress doesn’t improve for N steps → loop.
+
+---
+
+### Method E: Detect tool failure cascade
+
+If last 3 tool calls are:
+
+* failed
+* timeout
+* 429 rate limit
+
+Agent should:
+
+* stop retrying
+* switch strategy
+
+---
+
+## 2.4 Loop prevention (best practices)
+
+1. Add maximum retry per tool call
+
+   * e.g., retry ≤ 2 times
+
+2. Use fallback tool
+
+   * if web search fails → use cached docs
+
+3. Escalation policy
+
+   * “I cannot proceed because tool is failing.”
+
+4. Force final response mode
+
+   * output partial results + next actions
+
+---
+
+# 3) Temperature, Top-k, Top-p (LLM decoding)
+
+## 3.1 Where do these parameters apply?
+
+These parameters apply **after Transformer produces logits**.
+
+### Pipeline
+
+```
+Transformer → logits → softmax → probabilities → sampling → next token
+```
+
+Logits = raw scores for each vocabulary token.
+
+---
+
+## 3.2 What is temperature?
+
+Temperature controls randomness.
+
+We modify logits before softmax:
+
+`p = softmax(logits / T)`
+
+Where:
+
+* T = temperature
+
+### Intuition
+
+* T ↓ (0.2) → more deterministic
+* T ↑ (1.2) → more creative / random
+
+### Example
+
+If model considers:
+
+* “Bangalore” 0.60
+* “Chennai” 0.20
+* “Delhi” 0.10
+
+With low temperature:
+
+* Bangalore becomes ~0.90+ and always picked
+
+With high temperature:
+
+* other choices become possible
+
+---
+
+## 3.3 What is Top-k?
+
+Top-k limits sampling to only the **k most likely tokens**.
+
+Example:
+
+* k=50 means sample from top 50 tokens only
+
+✅ avoids extremely low probability nonsense tokens
+
+---
+
+## 3.4 What is Top-p (Nucleus sampling)?
+
+Top-p chooses smallest set of tokens whose probability sum >= p.
+
+Example:
+
+* p=0.9
+
+Then sample only from those tokens.
+
+### Why it is better than top-k?
+
+Because distribution shape changes:
+
+* sometimes top 10 tokens already cover 0.9
+* sometimes you need top 200
+
+So Top-p adapts.
+
+---
+
+## 3.5 How are these used together?
+
+Common combinations:
+
+### Stable factual chat
+
+* temperature = 0.2–0.7
+* top_p = 0.9
+* top_k = optional / 0
+
+### Creative writing
+
+* temperature = 0.9–1.3
+* top_p = 0.95
+
+### Code generation
+
+* temperature = 0.1–0.4
+* top_p = 0.9
+
+---
+
+# 4) How this connects to Transformer architecture
+
+Important: temperature/top-k/top-p do NOT change Transformer weights.
+
+They only control the final step:
+
+* converting logits into chosen next token
+
+### Transformer role
+
+Transformer learns:
+
+* probabilities distribution
+
+### Decoding role
+
+Decoding chooses:
+
+* which token from distribution
+
+---
+
+# 5) Super simple takeaway
+
+### Agent-to-agent calling
+
+= teamwork model (specialization)
+
+### Detect agent loop
+
+= repeated actions + no progress + hard step limits
+
+### Temperature/top-k/top-p
+
+= how random vs deterministic the next token choice is
+
+---
+
+If you want, I can extend this canvas with:
+
+1. pseudocode for loop detection
+2. sample agent workflow diagram
+3. recommended default decoding values for production chatbots
