@@ -218,7 +218,7 @@ Why?
 * Masked Multi-Head Self Attention
   * Each token looks only at earlier tokens to understand context and focus on important ones (future tokens are masked).
   * bank_vector = embedding(bank) + info(from money, deposited)
-* Feed Forward Network (MLP)
+* Feed Forward Network (Multi-Layer Perceptron MLP)
   * A small neural network applied to each token to refine its representation using nonlinear transformations.
   * After attention, bank already knows it's finance-related. MLP improves it further, like:
   * strengthening finance-related features, reducing irrelevant features
@@ -235,16 +235,6 @@ Why?
 #### 4) Output projection
 
 Final hidden states → logits over vocabulary.
-
----
-
-### Masked (causal) attention
-
-In GPT, token at position *t* can only attend to:
-
-* tokens ≤ t
-
-This prevents “peeking into the future”.
 
 ---
 
@@ -288,7 +278,7 @@ Attention helps resolve `it` = animal.
 * output = weighted sum of V
 
 Scaled dot-product attention:
-(Attention(Q,K,V) = softmax(QK^T/\sqrt{d_k})V)
+$(Attention(Q,K,V) = softmax(QK^T/\sqrt{d_k})V)$
 
 ---
 
