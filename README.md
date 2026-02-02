@@ -60,7 +60,7 @@ Given sequence:
 
 Mathematically:
 
-* model learns probability:  (P(token_t | token_{<t}))
+* model learns probability:  $(P(token_t | token_{<t}))$
 
 ---
 
