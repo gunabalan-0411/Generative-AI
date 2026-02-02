@@ -1,0 +1,1083 @@
+# BERT Architecture and Working (In-depth but Easy)
+
+## 1) Big picture: what are Transformer models?
+
+Transformer models process text using **self-attention**.
+
+### Core idea
+
+Instead of reading words one-by-one like an RNN, Transformer reads **all tokens together** and decides:
+
+* which words are important to each other
+* how strongly they are related
+
+Example sentence:
+
+> "The bank approved the loan because it was safe."
+
+Self-attention helps the model learn that:
+
+* “it” refers to “loan” (not bank)
+
+---
+
+## 2) Tokens and embeddings (common to BERT & GPT)
+
+Before going inside the model, both do the same preprocessing:
+
+### Step A: Tokenization
+
+Text is split into tokens (subwords).
+Example:
+
+* "unbelievable" → ["un", "##bel", "##ievable"]
+
+### Step B: Embedding vectors
+
+Each token becomes a vector:
+
+* **Token embedding** (meaning of the token)
+* **Position embedding** (where it occurs in the sentence)
+
+### Step C: Attention mask
+
+Mask decides what tokens can attend to:
+
+* BERT: can attend to **both left and right** tokens (bidirectional)
+* GPT: can attend only to **left tokens** (causal)
+
+---
+
+# 3) BERT Architecture (Encoder-only Transformer)
+
+## What is BERT?
+
+**BERT = Bidirectional Encoder Representations from Transformers**
+
+BERT is a **Transformer Encoder stack**.
+
+### Key property
+
+✅ **Bidirectional attention**: each token attends to *both* past and future tokens.
+
+This makes BERT very good at:
+
+* understanding text
+* classification
+* NER
+* semantic similarity
+* retrieval tasks
+
+---
+
+## 3.1 BERT Input format (important)
+
+BERT uses special tokens:
+
+* **[CLS]**: classification token (represents entire sequence)
+* **[SEP]**: separator between sentences
+* **[PAD]**: padding
+
+Example: sentence pair
+
+```
+[CLS] sentence A [SEP] sentence B [SEP]
+```
+
+### Segment embeddings
+
+BERT adds token-type embeddings:
+
+* Sentence A tokens = segment 0
+* Sentence B tokens = segment 1
+
+---
+
+## 3.2 Inside a BERT encoder layer
+
+Each encoder block has:
+
+### (1) Multi-Head Self Attention (MHSA)
+
+Self-attention learns relationships:
+
+* Query (Q)
+* Key (K)
+* Value (V)
+
+Computation idea (simplified):
+
+* similarity(Q,K) → attention weights
+* weighted sum of V → output representation
+
+Multi-head means:
+
+* model learns different relationship types in parallel
+
+### (2) Add & Norm (Residual connection)
+
+* output = LayerNorm(input + attention_output)
+
+### (3) Feed Forward Network (FFN)
+
+A small MLP applied to each token independently:
+
+* Linear → activation (GELU) → Linear
+
+### (4) Add & Norm again
+
+---
+
+## 3.3 How BERT learns (Pretraining objectives)
+
+BERT was trained on unsupervised text using 2 objectives:
+
+### A) Masked Language Modeling (MLM)
+
+Random tokens are replaced by:
+
+* [MASK] 80%
+* random token 10%
+* unchanged 10%
+
+Model predicts missing words using both context sides.
+
+Example:
+
+> "I live in [MASK]." → “Bangalore”
+
+### B) Next Sentence Prediction (NSP)
+
+Given two sentences:
+
+* Are they consecutive in original text?
+
+Note: Many later BERT variants removed NSP.
+
+---
+
+## 3.4 Why BERT is powerful
+
+Because it is **bidirectional**, it builds strong contextual embeddings.
+
+Example:
+
+* "He sat on the *bank*" → river bank meaning
+* "He went to the *bank*" → finance bank meaning
+
+BERT produces different embeddings based on context.
+
+---
+
+# 4) GPT Architecture (Decoder-only Transformer)
+
+## What is GPT?
+
+**GPT = Generative Pre-trained Transformer**
+
+GPT is a **Transformer Decoder stack**.
+
+### Key property
+
+✅ **Causal attention** (left-to-right)
+
+* token *t* can only attend to tokens ≤ t
+
+This makes GPT very good at:
+
+* text generation
+* dialogue
+* summarization
+* code generation
+* reasoning
+
+---
+
+## 4.1 GPT decoder layer structure
+
+It looks similar to BERT layer, but has a crucial difference:
+
+### (1) Masked Multi-Head Self Attention
+
+Attention uses a **triangular mask** so future tokens are blocked.
+
+### (2) Add & Norm
+
+### (3) Feed Forward Network
+
+### (4) Add & Norm
+
+---
+
+## 4.2 GPT training objective
+
+GPT trains using:
+
+### Autoregressive Language Modeling (CLM)
+
+Predict next token:
+
+Example:
+Input:
+
+> "I live in"
+
+Model predicts:
+
+> " Bangalore"
+
+Loss is calculated over every position:
+
+* predict token2 from token1
+* predict token3 from token1 token2
+* ...
+
+---
+
+## 4.3 Why GPT is good at generation
+
+Because it is trained exactly like generation:
+
+* it always predicts next token
+* during inference, it keeps appending predicted tokens
+
+---
+
+# 5) BERT vs GPT — main differences (most important section)
+
+## 5.1 Encoder-only vs Decoder-only
+
+* **BERT**: Encoder stack only
+* **GPT**: Decoder stack only
+
+## 5.2 Attention type
+
+* **BERT**: bidirectional self-attention
+* **GPT**: causal self-attention
+
+## 5.3 Objective
+
+* **BERT**: MLM (fill mask)
+* **GPT**: Next-token prediction
+
+## 5.4 Output behavior
+
+* **BERT**: produces embeddings (good for understanding)
+* **GPT**: generates new text (good for creation)
+
+---
+
+# 6) Easy intuition (Tamil + English style 🤝)
+
+### BERT = "Full sentence reader"
+
+BERT reads full sentence like:
+
+* "first understand entire meaning"
+* then answer classification/label tasks
+
+### GPT = "Story writer"
+
+GPT works like:
+
+* "keep writing next word"
+* doesn’t peek future words
+
+---
+
+# 7) Typical Use-cases
+
+## BERT use cases
+
+* Sentiment classification
+* Intent classification
+* Named Entity Recognition
+* Text similarity (Siamese BERT)
+* Search ranking / retrieval
+
+## GPT use cases
+
+* Chatbots
+* Summarization
+* Translation
+* Code generation
+* Content creation
+
+---
+
+# 8) Simple architecture diagram (text version)
+
+## BERT (Encoder-only)
+
+```
+Tokens → Embeddings → [Encoder]xN → Contextual embeddings
+                           │
+                           ├─ [CLS] embedding → classification head
+                           └─ token embeddings → tagging heads
+```
+
+## GPT (Decoder-only)
+
+```
+Tokens → Embeddings → [Masked Decoder]xN → Next-token probabilities
+                                              │
+                                              └→ generate token by token
+```
+
+---
+
+# 9) When to choose which?
+
+### Choose BERT when you want:
+
+* accurate classification
+* strong semantic representations
+* understanding tasks
+
+### Choose GPT when you want:
+
+* generation
+* reasoning and step-by-step answers
+* interactive dialogue
+
+---
+
+# 10) Summary (1-minute)
+
+* **BERT** = Encoder-only, bidirectional, MLM → best for understanding
+* **GPT** = Decoder-only, causal, next-token LM → best for generation
+
+---
+
+If you want, I can also add:
+
+1. Attention equations with small numeric example
+2. Comparison table for BERT-base vs GPT-2 sizes
+3. How fine-tuning differs: classification head vs instruction tuning
+
+
+# Autoencoders (In-depth but Easy)
+
+## 1) What is an Autoencoder?
+
+An **Autoencoder** is a neural network that learns to:
+
+✅ **compress** the input (encode)
+✅ then **reconstruct** the same input (decode)
+
+So the model is trained like:
+
+> “I will try to reproduce what you gave me.”
+
+### Very simple analogy
+
+Think of Autoencoder like a **ZIP file**:
+
+* Encoder = compress file
+* Decoder = unzip back
+
+But unlike real compression algorithms, autoencoder learns **what information is important** from data.
+
+---
+
+## 2) Why is this useful?
+
+Even though task looks like copying, autoencoder is forced to learn:
+
+* patterns
+* structure
+* important features
+
+Because we usually create a **bottleneck** (small middle layer), it can’t copy everything directly.
+
+So it learns a **compact representation** of the data.
+
+---
+
+## 3) Architecture
+
+Autoencoder has 3 main parts:
+
+### (A) Encoder
+
+Takes input `x` and converts it to a compressed vector `z`.
+
+`z = Encoder(x)`
+
+### (B) Bottleneck / Latent space
+
+This is the small compressed representation.
+
+* called **latent vector**
+* dimension is smaller than input
+
+### (C) Decoder
+
+Reconstructs the input back.
+
+`x_hat = Decoder(z)`
+
+---
+
+## 4) Diagram
+
+```
+Input x  →  Encoder  →  Latent z  →  Decoder  →  Reconstructed x_hat
+ 784          ↓            32           ↑              784
+(MNIST)     compress     (code)      decompress       (image)
+```
+
+Example:
+
+* Input = image with 784 pixels (28x28)
+* Latent vector = 32 numbers
+* Output = again 784 pixels
+
+---
+
+## 5) Training objective (Loss)
+
+Autoencoder tries to minimize reconstruction error.
+
+### Mean Squared Error (common for images)
+
+`L = ||x - x_hat||^2`
+
+### Binary Cross Entropy (for normalized binary images)
+
+`L = - Σ [ x log(x_hat) + (1-x) log(1-x_hat) ]`
+
+So the goal:
+
+* reconstructed output should match input as closely as possible.
+
+---
+
+## 6) Easy example (real life understanding)
+
+### Example: Compressing a photo
+
+Suppose you have an image of a cat.
+
+* Encoder learns: edges + shapes + ears + body
+* Latent vector stores only key features
+* Decoder recreates the cat image
+
+If bottleneck is small:
+
+* decoder cannot reconstruct exact pixels
+* but reconstructs "close enough"
+
+So latent vector acts like:
+
+> "Summary of image features"
+
+---
+
+## 7) Why bottleneck is important
+
+If bottleneck size is too big:
+
+* model will simply learn identity mapping
+* it memorizes pixel-to-pixel copy
+
+So we force learning by:
+
+* making bottleneck smaller
+* adding constraints (regularization)
+
+---
+
+# 8) Types of Autoencoders
+
+## 8.1 Vanilla / Basic Autoencoder
+
+* normal encoder-decoder
+* best for compression + feature learning
+
+---
+
+## 8.2 Denoising Autoencoder
+
+### Idea
+
+Train the model to reconstruct clean input from noisy version.
+
+Example:
+
+* Input: corrupted image with noise
+* Target: original clean image
+
+This makes learned representation more robust.
+
+✅ good for noise removal
+
+---
+
+## 8.3 Sparse Autoencoder
+
+Adds sparsity constraint:
+
+* only few neurons active in latent space
+
+This forces:
+
+* meaningful features
+* less redundancy
+
+✅ good for feature extraction
+
+---
+
+## 8.4 Variational Autoencoder (VAE)
+
+Most important advanced version.
+
+### Difference from basic AE
+
+Instead of learning a fixed latent vector, VAE learns a **distribution**:
+
+* mean μ
+* variance σ
+
+Then we sample:
+
+`z = μ + σ * ε`
+
+This makes latent space smooth and continuous.
+
+✅ best for generation
+Like creating new faces/images.
+
+---
+
+# 9) Autoencoders vs PCA (important comparison)
+
+## PCA
+
+* linear method
+* finds directions of maximum variance
+
+## Autoencoder
+
+* can be nonlinear (deep nets)
+* learns complex patterns
+
+So AE is like:
+
+> PCA but with nonlinear power
+
+---
+
+# 10) Best application: Anomaly detection
+
+This is the biggest practical use in industry.
+
+## Why AE works for anomaly detection?
+
+Autoencoder is trained only on **normal data**.
+
+So it learns normal patterns.
+
+### At inference:
+
+* normal sample → reconstructs well → low error
+* anomaly sample → reconstructs poorly → high error
+
+So we use:
+
+`anomaly_score = reconstruction_error`
+
+---
+
+## 10.1 Example: Credit card fraud
+
+Train autoencoder on normal transactions.
+
+If a fraud transaction comes:
+
+* pattern not learned
+* reconstruction error spikes
+
+✅ flagged as anomaly
+
+---
+
+# 11) Easy numerical toy example (super simple)
+
+Suppose input features:
+
+x = [height, weight, age]
+
+Autoencoder compresses it to 1 number:
+
+z = 0.8
+
+Decoder reconstructs:
+
+x_hat ≈ [170, 68, 29]
+
+If input is normal, reconstruction is close.
+If input is weird:
+
+x = [170, 5, 29]  (weight too small)
+
+Decoder will fail.
+Reconstruction error becomes high.
+
+---
+
+# 12) Limitations (important)
+
+* Autoencoder can also reconstruct anomalies if trained too broadly
+* needs proper latent size
+* needs regularization to avoid memorization
+
+---
+
+# 13) Summary (1-minute)
+
+* Autoencoder learns to reconstruct input
+* Encoder compresses → latent vector
+* Decoder reconstructs
+* Bottleneck forces learning meaningful representations
+* Great for: compression, denoising, anomaly detection
+* VAE variant can generate new data
+
+---
+
+If you want, I can add in this canvas:
+
+1. PyTorch code (simple AE)
+2. Denoising AE example
+3. AE anomaly detection pipeline with threshold selection
+
+# LLM Architecture (In-depth but Easy)
+
+## 1) What is an LLM?
+
+An **LLM (Large Language Model)** is a neural network trained to:
+
+✅ understand text
+✅ predict the next token
+✅ generate coherent text
+✅ answer questions, summarize, translate, write code, etc.
+
+### Key idea
+
+LLMs don’t “store sentences”.
+They learn **statistical + semantic patterns** from huge text datasets.
+
+---
+
+## 2) What is a token?
+
+LLMs do NOT work directly with full words.
+They work with **tokens** (subword units).
+
+Example:
+
+* "unbelievable" → ["un", "bel", "ievable"] (example token split)
+
+So LLM sees text as:
+
+```
+Token IDs: [15496, 318, 257, 2214, ...]
+```
+
+---
+
+## 3) High-level LLM pipeline
+
+### Step-by-step flow
+
+1. Input text → tokenization
+2. Token IDs → embeddings
+3. Embeddings → Transformer blocks (many layers)
+4. Final hidden states → output logits
+5. Softmax → probabilities of next token
+6. Sampling/decoding → choose next token
+7. Repeat until stop
+
+---
+
+# 4) LLM core architecture = Transformer (Decoder-only)
+
+Most modern LLMs are:
+
+✅ **Decoder-only Transformers**
+(like GPT family)
+
+### Why decoder-only?
+
+Because the training objective is simple and scalable:
+
+> Predict the next token
+
+---
+
+## 4.1 Text diagram
+
+```
+Tokens → Embeddings → [Transformer Decoder Block] x N → LM Head → Next token
+```
+
+Example sizes:
+
+* N = 12 layers (small)
+* N = 32/48/80 layers (bigger)
+
+---
+
+## 5) Input Embeddings (important)
+
+### 5.1 Token embedding
+
+Each token id maps to a vector:
+
+```
+E[token_id] = R^d
+```
+
+Where:
+
+* d = hidden dimension (e.g., 768, 4096, 8192)
+
+### 5.2 Position information
+
+Since Transformer reads tokens in parallel, it needs position information.
+
+Two common approaches:
+
+1. **Absolute positional embeddings** (classic)
+2. **Rotary Position Embeddings (RoPE)** (common in modern LLMs)
+
+RoPE helps:
+
+* longer context
+* better extrapolation
+
+---
+
+# 6) Transformer Decoder Block (the heart of LLM)
+
+Each block has two major parts:
+
+1. **Masked Multi-Head Self-Attention**
+2. **Feed Forward Network (MLP)**
+
+Also includes:
+
+* residual connections
+* layer normalization
+
+---
+
+## 6.1 Causal (masked) self-attention
+
+### Meaning
+
+Token at position `t` can only look at:
+
+* tokens at positions ≤ t
+
+So the model cannot cheat by seeing future tokens.
+
+### Attention mask shape
+
+Triangular:
+
+```
+Allowed:  t attends to [0..t]
+Blocked:  t cannot attend to [t+1..]
+```
+
+---
+
+## 6.2 Why attention is powerful (simple intuition)
+
+Attention answers:
+
+> "When generating the next word, which previous words should I focus on?"
+
+Example:
+
+> "Guna lives in Bangalore and he works at ____"
+
+Attention focuses on:
+
+* “Guna”
+* “works at”
+
+So likely completion:
+
+* “HP”
+
+---
+
+## 6.3 Multi-head attention
+
+Instead of a single attention pattern, the model learns multiple.
+
+Different heads learn different relationships:
+
+* grammar dependencies
+* coreference (he/she/it)
+* topic continuation
+* code indentation (in coding models)
+
+---
+
+## 6.4 MLP / Feedforward
+
+After attention, each token representation is passed through an MLP:
+
+```
+Linear → GELU/SwiGLU → Linear
+```
+
+### Why MLP matters?
+
+* attention mixes information across tokens
+* MLP transforms that information nonlinearly
+
+In many modern LLMs, MLP consumes a big portion of compute.
+
+---
+
+# 7) LayerNorm + Residuals
+
+Every block has:
+
+* Residual: `x = x + f(x)`
+* Norm: stabilizes training
+
+There are 2 common designs:
+
+### Post-LN (older)
+
+Norm after residual
+
+### Pre-LN (modern)
+
+Norm before attention/MLP
+
+Pre-LN helps stability in deep networks.
+
+---
+
+# 8) Output layer (LM Head)
+
+After final layer:
+
+* hidden state vector → projected to vocabulary size
+
+```
+logits = W * h
+probabilities = softmax(logits)
+```
+
+Then model chooses the next token.
+
+---
+
+# 9) Training objective: Next-token prediction
+
+This is called:
+
+* Autoregressive LM training
+* Causal Language Modeling (CLM)
+
+Example training sample:
+
+Input:
+
+> "I love machine"
+
+Target:
+
+> " learning"
+
+Loss is computed using cross-entropy for every position.
+
+---
+
+# 10) How LLM generates text (Inference)
+
+Generation process:
+
+1. compute probabilities for next token
+2. select token
+3. append token
+4. repeat
+
+---
+
+## 10.1 Decoding strategies
+
+### Greedy decoding
+
+Always pick highest probability token.
+
+* can be repetitive
+
+### Beam search
+
+Keeps top-k sequences.
+
+* good for translation
+
+### Sampling (most common for chat)
+
+Pick token randomly from distribution (controlled randomness).
+
+Important parameters:
+
+* **temperature**: controls randomness
+* **top-k**: sample from top k tokens only
+* **top-p** (nucleus): sample from smallest set whose prob sum ≥ p
+
+---
+
+# 11) What makes an LLM “Large”?
+
+Three major scaling factors:
+
+### 11.1 Parameters
+
+* weights in the network
+* e.g., 7B, 13B, 70B
+
+### 11.2 Data
+
+* tokens seen during training
+
+### 11.3 Compute
+
+* GPU/TPU time for training
+
+Scaling laws show: more of these → better performance (up to limits).
+
+---
+
+# 12) Modern improvements in LLM architectures
+
+## 12.1 RoPE
+
+Better position encoding.
+
+## 12.2 SwiGLU MLP
+
+More efficient than GELU.
+
+## 12.3 Grouped Query Attention (GQA)
+
+Speeds up attention in inference.
+
+## 12.4 KV Cache (critical)
+
+During decoding, model caches Key/Value tensors.
+
+Without KV cache:
+
+* recompute attention over all past tokens each time
+
+With KV cache:
+
+* reuse past keys/values
+* huge speed boost
+
+---
+
+# 13) Why LLMs hallucinate?
+
+Because the model’s core objective is:
+
+> produce the most likely next token sequence
+
+It does NOT have:
+
+* guaranteed factual database
+* built-in truth checking
+
+So it can generate:
+
+* plausible but incorrect text
+
+---
+
+# 14) LLM vs RAG (Retrieval Augmented Generation)
+
+## LLM alone
+
+* uses learned knowledge
+* may be outdated
+
+## RAG
+
+* retrieves documents from external store
+* then LLM answers using those
+
+So RAG reduces hallucinations and improves factual accuracy.
+
+---
+
+# 15) How ChatGPT-style models are made (3-stage)
+
+## Stage 1: Pretraining
+
+Train next-token prediction on internet/books/code.
+
+## Stage 2: Supervised fine-tuning (SFT)
+
+Train on instruction datasets:
+
+* question → answer
+
+## Stage 3: Alignment
+
+Techniques like:
+
+* RLHF (Human feedback)
+* DPO (Direct preference optimization)
+
+Goal:
+
+* helpful
+* safe
+* follows instructions
+
+---
+
+# 16) Comparison: BERT vs LLM (GPT-style)
+
+### BERT
+
+* encoder-only
+* bidirectional
+* best for understanding tasks
+
+### GPT/LLMs
+
+* decoder-only
+* causal
+* best for generation
+
+---
+
+# 17) Summary (1-minute)
+
+* LLMs mostly use decoder-only Transformer architecture
+* tokens → embeddings → N transformer blocks
+* each block: masked attention + MLP + residual + norm
+* trained with next-token prediction
+* inference: autoregressive token-by-token generation using decoding strategies
+
+---
+
+If you want, I can extend this canvas with:
+
+1. Attention equation (Q,K,V) + small example
+2. Full inference optimization details (GQA + FlashAttention)
+3. Architecture variations: Mixture-of-Experts (MoE)
+4. Context window / KV cache memory calculation
