@@ -232,6 +232,35 @@ Why?
 * It becomes a context-aware representation:
 * “bank = place where money is deposited”  
 
+KV Cache
+* KV cache is just memory that stores past “keys” and “values” so the model doesn’t recompute them again and again while generating text.
+* During generation:
+* Keys (K) and Values (V) for previous tokens
+* Stored per layer, per attention head
+  * ❌ Queries are not cached
+  * ✅ Only K and V
+
+Could we build a generative model with an encoder?
+* Yes — and we did.
+
+Examples:
+* T5
+* BART
+
+But:
+* More complex
+* Slower for long conversations
+* Harder to extend context indefinitely
+
+Decoder-only models:
+* Work naturally with KV cache
+* Scale better for long sequences
+* Simpler deployment
+
+Encoder-decoder models:
+* Encoder must reprocess entire input each turn
+
+
 #### 4) Output projection
 
 Final hidden states → logits over vocabulary.
